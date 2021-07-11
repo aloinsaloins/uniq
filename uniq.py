@@ -27,28 +27,32 @@ parser.add_argument("-w", "--check-chars",
 args = parser.parse_args()
 
 
-def printLines(f):
+def removeLines(file) -> bool:
+    lines = file.read().splitlines()
+    if not lines:
+        return False
+    NumOfLines = len(lines)
+    for s_line in range(1, NumOfLines):
+        # 行-１とその一行前の行を比較
+        if lines[s_line] != lines[s_line-1]:
+            print(lines[s_line-1])
+        if s_line == NumOfLines-1:
+            print(lines[s_line])
+
+
+def printLines(file):
     while True:
-        s = f.readline()
-        if not s:
+        if removeLines(file) is False:
             break
-        print(s, file=sys.stdout, end='')
 
 
 if args.fileName.name != '<stdin>':
     try:
         with open(args.fileName.name) as file:
-            lines = file.read().splitlines()
-            NumOfLines = len(lines)
-            for s_line in range(1, NumOfLines):
-                # 行-１とその一行前の行を比較
-                if lines[s_line] != lines[s_line-1]:
-                    print(lines[s_line-1])
-                if s_line == NumOfLines-1:
-                    print(lines[s_line])
+            removeLines(file)
         file.close()
     except FileNotFoundError:
-        sys.exit("wo such file or directory:" + args.fileName.name)
+        sys.exit("wo such file or directory:" + file)
 
 else:
     printLines(args.fileName)
