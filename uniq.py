@@ -13,7 +13,8 @@ parser.add_argument(
     "-c", "--count", help="prefix lines by the number of occurrences",
     action="store_true")
 parser.add_argument("-d", "--repeated",
-                    help="only print duplicate lines, one for each group")
+                    help="only print duplicate lines, one for each group",
+                    action="store_true")
 parser.add_argument("-D", "--all-repeated", help="increase output verbosity")
 parser.add_argument("-f", "--skip-fields=N",
                     help="avoid comparing the first N fields")
@@ -23,7 +24,8 @@ parser.add_argument("-i", "--igonore-case",
 parser.add_argument("-s", "--skip-chars=N",
                     help="avoid comparing the first N characters")
 parser.add_argument(
-    "-u", "--unique", help="only print unique lines")
+    "-u", "--unique", help="only print unique lines",
+    action="store_true")
 parser.add_argument("-z", "--zero-terminated",
                     help="line delimiter is NUL, not newline")
 parser.add_argument("-w", "--check-chars",
@@ -57,22 +59,13 @@ def printLines(file):
     while True:
         if removeLines(file) is False:
             break
-        # lines = file.read().splitlines()
-        # if not lines:
-        #     break
-        # NumOfLines = len(lines)
-        # for s_line in range(1, NumOfLines):
-        #     # 行-１とその一行前の行を比較
-        #     if lines[s_line] != lines[s_line-1]:
-        #         print(lines[s_line-1], file=sys.stdout, end='')
-        #     if s_line == NumOfLines-1:
-        #         print(lines[s_line], file=sys.stdout, end='')
 
 
-def count(file):
-    removedLines = queue.Queue()
-    numOfLines = queue.Queue()
+def count(file, args, numOfLines, removedLines) -> bool:
+
     lines = file.read().splitlines()
+    if not lines:
+        return False
     NumOfLines = len(lines)
     comparison = lines[0]
     i = 1
@@ -88,8 +81,6 @@ def count(file):
             if s_line == NumOfLines-1:
                 removedLines.put(comparison)
                 numOfLines.put(i)
-            while not numOfLines.empty():
-                print(str(numOfLines.get()) + " " + removedLines.get())
     else:
         for s_line in range(1, NumOfLines):
             # 行-１とその一行前の行を比較
@@ -103,8 +94,6 @@ def count(file):
             if s_line == NumOfLines-1:
                 removedLines.put(lines[s_line])
                 numOfLines.put(i)
-            while not numOfLines.empty():
-                print(str(numOfLines.get()) + " " + removedLines.get())
 
 
 args = parser.parse_args()
@@ -112,10 +101,14 @@ args = parser.parse_args()
 if args.fileName.name != '<stdin>':
     try:
         with open(args.fileName.name) as file:
-            if args.count:
-                count(file)
-            else:
-                removeLines(file, args)
+            removedLines = queue.Queue()
+            numOfLines = queue.Queue()
+            count(file, args, numOfLines, removedLines)
+            while not removedLines.empty():
+                if args.count:
+                    print(str(numOfLines.get()) + " " + removedLines.get())
+                else:
+                    print(removedLines.get())
         file.close()
     except FileNotFoundError:
         sys.exit("wo such file or directory:" + file)
