@@ -1,6 +1,7 @@
 import sys
 import argparse
 import queue
+import re
 
 parser = argparse.ArgumentParser()
 
@@ -17,7 +18,8 @@ parser.add_argument("-D", "--all-repeated", help="increase output verbosity")
 parser.add_argument("-f", "--skip-fields=N",
                     help="avoid comparing the first N fields")
 parser.add_argument("-i", "--igonore-case",
-                    help="ignore differences in case when comparing")
+                    help="ignore differences in case when comparing",
+                    action="store_true")
 parser.add_argument("-s", "--skip-chars=N",
                     help="avoid comparing the first N characters")
 parser.add_argument(
@@ -28,17 +30,27 @@ parser.add_argument("-w", "--check-chars",
                     help="compare no more than N characters in lines")
 
 
-def removeLines(file) -> bool:
+def removeLines(file, args) -> bool:
     lines = file.read().splitlines()
     if not lines:
         return False
     NumOfLines = len(lines)
-    for s_line in range(1, NumOfLines):
-        # 行-１とその一行前の行を比較
-        if lines[s_line] != lines[s_line-1]:
-            print(lines[s_line-1])
-        if s_line == NumOfLines-1:
-            print(lines[s_line])
+
+    if args.igonore_case:
+        comparison = lines[0]
+        for s_line in range(1, NumOfLines):
+            if re.search(lines[s_line], comparison, re.IGNORECASE) is None:
+                print(comparison)
+                comparison = lines[s_line]
+            elif s_line == NumOfLines-1:
+                print(comparison)
+    else:
+        for s_line in range(1, NumOfLines):
+            # 行-１とその一行前の行を比較
+            if lines[s_line] != lines[s_line-1]:
+                print(lines[s_line-1])
+            elif s_line == NumOfLines-1:
+                print(lines[s_line])
 
 
 def printLines(file):
@@ -64,20 +76,35 @@ def count(file):
     NumOfLines = len(lines)
     comparison = lines[0]
     i = 1
-    for s_line in range(1, NumOfLines):
-        # 行-１とその一行前の行を比較
-        if lines[s_line] != comparison:
-            removedLines.put(comparison)
-            numOfLines.put(i)
-            comparison = lines[s_line]
-            i = 1
-        else:
-            i += 1
-        if s_line == NumOfLines-1:
-            removedLines.put(lines[s_line])
-            numOfLines.put(i)
-        while not numOfLines.empty():
-            print(str(numOfLines.get()) + " " + removedLines.get())
+    if args.igonore_case:
+        for s_line in range(1, NumOfLines):
+            if re.search(lines[s_line], comparison, re.IGNORECASE) is None:
+                removedLines.put(comparison)
+                numOfLines.put(i)
+                comparison = lines[s_line]
+                i = 1
+            else:
+                i += 1
+            if s_line == NumOfLines-1:
+                removedLines.put(comparison)
+                numOfLines.put(i)
+            while not numOfLines.empty():
+                print(str(numOfLines.get()) + " " + removedLines.get())
+    else:
+        for s_line in range(1, NumOfLines):
+            # 行-１とその一行前の行を比較
+            if lines[s_line] != comparison:
+                removedLines.put(comparison)
+                numOfLines.put(i)
+                comparison = lines[s_line]
+                i = 1
+            else:
+                i += 1
+            if s_line == NumOfLines-1:
+                removedLines.put(lines[s_line])
+                numOfLines.put(i)
+            while not numOfLines.empty():
+                print(str(numOfLines.get()) + " " + removedLines.get())
 
 
 args = parser.parse_args()
@@ -88,7 +115,7 @@ if args.fileName.name != '<stdin>':
             if args.count:
                 count(file)
             else:
-                removeLines(file)
+                removeLines(file, args)
         file.close()
     except FileNotFoundError:
         sys.exit("wo such file or directory:" + file)
