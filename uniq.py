@@ -32,7 +32,7 @@ parser.add_argument("-w", "--check-chars",
                     help="compare no more than N characters in lines")
 
 
-def removeLines(file, args) -> bool:
+def test(file, args, numOfLines, removedLines) -> bool:
     lines = file.read().splitlines()
     if not lines:
         return False
@@ -55,9 +55,10 @@ def removeLines(file, args) -> bool:
                 print(lines[s_line])
 
 
-def printLines(file):
+def printLines(args, numOfLines, removedLines):
     while True:
-        if removeLines(file) is False:
+        file = args.fileName
+        if count(file, args, numOfLines, removedLines) is False:
             break
 
 
@@ -98,11 +99,11 @@ def count(file, args, numOfLines, removedLines) -> bool:
 
 args = parser.parse_args()
 
+removedLines = queue.Queue()
+numOfLines = queue.Queue()
 if args.fileName.name != '<stdin>':
     try:
         with open(args.fileName.name) as file:
-            removedLines = queue.Queue()
-            numOfLines = queue.Queue()
             count(file, args, numOfLines, removedLines)
             while not removedLines.empty():
                 if args.count:
@@ -114,4 +115,9 @@ if args.fileName.name != '<stdin>':
         sys.exit("wo such file or directory:" + file)
 
 else:
-    printLines(args.fileName)
+    printLines(args, numOfLines, removedLines)
+    while not removedLines.empty():
+        if args.count:
+            print(str(numOfLines.get()) + " " + removedLines.get())
+        else:
+            print(removedLines.get())
