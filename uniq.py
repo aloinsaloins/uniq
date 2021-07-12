@@ -32,7 +32,7 @@ parser.add_argument("-w", "--check-chars",
                     help="compare no more than N characters in lines")
 
 
-def test(file, args, numOfLines, removedLines) -> bool:
+def test(file, args, removedLines) -> bool:
     lines = file.read().splitlines()
     if not lines:
         return False
@@ -55,14 +55,14 @@ def test(file, args, numOfLines, removedLines) -> bool:
                 print(lines[s_line])
 
 
-def printLines(args, numOfLines, removedLines):
+def printLines(args, removedLines, duplicateLines, nonDuplicateLines):
     while True:
         file = args.fileName
-        if count(file, args, numOfLines, removedLines) is False:
+        if count(file, args, removedLines, nonDuplicateLines) is False:
             break
 
 
-def count(file, args, numOfLines, removedLines) -> bool:
+def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
 
     lines = file.read().splitlines()
     if not lines:
@@ -73,51 +73,78 @@ def count(file, args, numOfLines, removedLines) -> bool:
     if args.igonore_case:
         for s_line in range(1, NumOfLines):
             if re.search(lines[s_line], comparison, re.IGNORECASE) is None:
-                removedLines.put(comparison)
-                numOfLines.put(i)
+                removedLines.put((i, comparison))
+                if i > 1:
+                    duplicateLines.put((i, comparison))
+                else:
+                    nonDuplicateLines.put((i, comparison))
                 comparison = lines[s_line]
                 i = 1
             else:
                 i += 1
             if s_line == NumOfLines-1:
-                removedLines.put(comparison)
-                numOfLines.put(i)
+                removedLines.put((i, lines[s_line]))
+                if i > 1:
+                    duplicateLines.put((i, comparison))
+                else:
+                    nonDuplicateLines.put((i, comparison))
     else:
         for s_line in range(1, NumOfLines):
             # 行-１とその一行前の行を比較
             if lines[s_line] != comparison:
-                removedLines.put(comparison)
-                numOfLines.put(i)
+                removedLines.put((i, comparison))
+                if i > 1:
+                    duplicateLines.put((i, comparison))
+                else:
+                    nonDuplicateLines.put((i, comparison))
                 comparison = lines[s_line]
                 i = 1
             else:
                 i += 1
             if s_line == NumOfLines-1:
-                removedLines.put(lines[s_line])
-                numOfLines.put(i)
+                removedLines.put((i, lines[s_line]))
+                if i > 1:
+                    duplicateLines.put((i, comparison))
+                else:
+                    nonDuplicateLines.put((i, comparison))
 
 
 args = parser.parse_args()
 
 removedLines = queue.Queue()
-numOfLines = queue.Queue()
+duplicateLines = queue.Queue()
+nonDuplicateLines = queue.Queue()
+
 if args.fileName.name != '<stdin>':
     try:
         with open(args.fileName.name) as file:
-            count(file, args, numOfLines, removedLines)
-            while not removedLines.empty():
+            count(file, args, removedLines,
+                  duplicateLines, nonDuplicateLines)
+            tmp = None
+            if args.unique and args.repeated:
+                print()
+            elif args.unique:
+                tmp = nonDuplicateLines
+            elif args.repeated:
+                tmp = duplicateLines
+            else:
+                tmp = removedLines
+
+            while not tmp.empty():
                 if args.count:
-                    print(str(numOfLines.get()) + " " + removedLines.get())
+                    print(str(tmp.get()[0]) + " " + tmp.get()[1])
                 else:
-                    print(removedLines.get())
+                    print(tmp.get()[1])
         file.close()
     except FileNotFoundError:
-        sys.exit("wo such file or directory:" + file)
+        sys.exit("No such file or directory:" + file)
 
 else:
-    printLines(args, numOfLines, removedLines)
+    printLines(args, removedLines,
+               duplicateLines, nonDuplicateLines)
     while not removedLines.empty():
+        tmp = removedLines.get()
         if args.count:
-            print(str(numOfLines.get()) + " " + removedLines.get())
+            print(str(tmp[0]) + " " + tmp[1])
         else:
-            print(removedLines.get())
+            print(tmp[1])
