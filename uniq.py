@@ -46,7 +46,6 @@ def putToDuplicateQueue(num, comparison):
 
 
 def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
-
     lines = file.read().splitlines()
     if not lines:
         return False
@@ -63,7 +62,7 @@ def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
             else:
                 i += 1
             if s_line == NumOfLines-1:
-                removedLines.put((i, lines[s_line]))
+                removedLines.put((i, comparison))
                 putToDuplicateQueue(i, comparison)
     else:
         for s_line in range(1, NumOfLines):
@@ -98,7 +97,7 @@ if args.fileName.name != '<stdin>':
                   duplicateLines, nonDuplicateLines)
             tmp = None
             if args.unique and args.repeated:
-                print()
+                pass
             elif args.unique:
                 tmp = nonDuplicateLines
             elif args.repeated:
