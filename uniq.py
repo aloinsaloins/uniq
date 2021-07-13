@@ -95,31 +95,32 @@ if args.fileName.name != '<stdin>':
         with open(args.fileName.name) as file:
             count(file, args, removedLines,
                   duplicateLines, nonDuplicateLines)
-            tmp = None
+            tmpQueue = None
             if args.unique and args.repeated:
                 pass
             elif args.unique:
-                tmp = nonDuplicateLines
+                tmpQueue = nonDuplicateLines
             elif args.repeated:
-                tmp = duplicateLines
+                tmpQueue = duplicateLines
             else:
-                tmp = removedLines
+                tmpQueue = removedLines
 
             if args.output.name != '<stdout>':
                 with open(args.output.name, args.output.mode) as wFile:
-                    while not tmp.empty():
+                    while not tmpQueue.empty():
                         if args.count:
                             wFile.write(
-                                str(tmp.get()[0]) + " " + tmp.get()[1] + '\n')
+                                str(tmpQueue.get()[0]) + " " + tmpQueue.get()[1] + '\n')
                         else:
-                            wFile.write(tmp.get()[1] + '\n')
+                            wFile.write(tmpQueue.get()[1] + '\n')
                 wFile.close()
             else:
-                while not tmp.empty():
+                while not tmpQueue.empty():
+                    tmp = tmpQueue.get()
                     if args.count:
-                        print(str(tmp.get()[0]) + " " + tmp.get()[1])
+                        print(str(tmp[0]) + " " + tmp[1])
                     else:
-                        print(tmp.get()[1])
+                        print(tmp[1])
 
         file.close()
     except FileNotFoundError:
@@ -129,18 +130,19 @@ else:
     printLines(args, removedLines,
                duplicateLines, nonDuplicateLines)
     while not removedLines.empty():
-        tmp = None
+        tmpQueue = None
         if args.unique and args.repeated:
             print()
         elif args.unique:
-            tmp = nonDuplicateLines
+            tmpQueue = nonDuplicateLines
         elif args.repeated:
-            tmp = duplicateLines
+            tmpQueue = duplicateLines
         else:
-            tmp = removedLines
+            tmpQueue = removedLines
 
-        while not tmp.empty():
+        while not tmpQueue.empty():
+            tmp = tmpQueue.get()
             if args.count:
-                print(str(tmp.get()[0]) + " " + tmp.get()[1])
+                print(str(tmp[0]) + " " + tmp[1])
             else:
-                print(tmp.get()[1])
+                print(tmp[1])
