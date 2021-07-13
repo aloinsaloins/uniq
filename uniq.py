@@ -19,14 +19,15 @@ parser.add_argument("-i", "--igonore-case",
                     action="store_true")
 parser.add_argument("-u", "--unique", help="only print unique lines",
                     action="store_true")
-parser.add_argument("-w", "--check-chars", type=int,
-                    help="compare no more than N characters in lines")
+group = parser.add_mutually_exclusive_group()
+group.add_argument("-w", "--check-chars", type=int,
+                   help="compare no more than N characters in lines")
+group.add_argument("-s", "--skip-chars", type=int,
+                   help="avoid comparing the first N characters")
 
 parser.add_argument("-D", "--all-repeated", help="increase output verbosity")
-parser.add_argument("-f", "--skip-fields=N",
+parser.add_argument("-f", "--skip-fields",
                     help="avoid comparing the first N fields")
-parser.add_argument("-s", "--skip-chars=N",
-                    help="avoid comparing the first N characters")
 parser.add_argument("-z", "--zero-terminated",
                     help="line delimiter is NUL, not newline")
 
@@ -52,6 +53,7 @@ def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
     NumOfLines: int = len(lines)
     comparison: str = lines[0]
     i = 1
+
     if args.check_chars is None:
         backPos = None
     elif args.check_chars == 0:
@@ -61,9 +63,14 @@ def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
     else:
         backPos = args.check_chars
 
+    if args.skip_chars is None:
+        forthPos = None
+    else:
+        forthPos = args.skip_chars
+
     if args.igonore_case:
         for s_line in range(1, NumOfLines):
-            if re.search(lines[s_line][0:backPos], comparison[0:backPos], re.IGNORECASE) is None:
+            if re.search(lines[s_line][forthPos:backPos], comparison[forthPos:backPos], re.IGNORECASE) is None:
                 removedLines.put((i, comparison))
                 putToDuplicateQueue(i, comparison)
                 comparison = lines[s_line]
@@ -75,17 +82,30 @@ def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
                 putToDuplicateQueue(i, comparison)
     else:
         for s_line in range(1, NumOfLines):
-            # 行-１とその一行前の行を比較
-            if lines[s_line][0:backPos] != comparison[0:backPos]:
-                removedLines.put((i, comparison))
-                putToDuplicateQueue(i, comparison)
-                comparison = lines[s_line]
-                i = 1
+            if forthPos is None:
+                # 行-１とその一行前の行を比較
+                if lines[s_line][forthPos:backPos] != comparison[forthPos:backPos]:
+                    removedLines.put((i, comparison))
+                    putToDuplicateQueue(i, comparison)
+                    comparison = lines[s_line]
+                    i = 1
+                else:
+                    i += 1
+                if s_line == NumOfLines-1:
+                    removedLines.put((i, lines[s_line]))
+                    putToDuplicateQueue(i, comparison)
             else:
-                i += 1
-            if s_line == NumOfLines-1:
-                removedLines.put((i, lines[s_line]))
-                putToDuplicateQueue(i, comparison)
+                if forthPos >= len(lines[s_line]):
+                    i += 1
+                    continue
+                else:
+                    removedLines.put((i, comparison))
+                    putToDuplicateQueue(i, comparison)
+                    comparison = lines[s_line]
+                    i = 1
+                if s_line == NumOfLines-1:
+                    removedLines.put((i, lines[s_line]))
+                    putToDuplicateQueue(i, comparison)
 
 
 try:
