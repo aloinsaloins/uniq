@@ -19,6 +19,8 @@ parser.add_argument("-i", "--igonore-case",
                     action="store_true")
 parser.add_argument("-u", "--unique", help="only print unique lines",
                     action="store_true")
+parser.add_argument("-w", "--check-chars", type=int,
+                    help="compare no more than N characters in lines")
 
 parser.add_argument("-D", "--all-repeated", help="increase output verbosity")
 parser.add_argument("-f", "--skip-fields=N",
@@ -27,8 +29,6 @@ parser.add_argument("-s", "--skip-chars=N",
                     help="avoid comparing the first N characters")
 parser.add_argument("-z", "--zero-terminated",
                     help="line delimiter is NUL, not newline")
-parser.add_argument("-w", "--check-chars",
-                    help="compare no more than N characters in lines")
 
 
 def printLines(args, removedLines, duplicateLines, nonDuplicateLines):
@@ -49,12 +49,21 @@ def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
     lines = file.read().splitlines()
     if not lines:
         return False
-    NumOfLines = len(lines)
-    comparison = lines[0]
+    NumOfLines: int = len(lines)
+    comparison: str = lines[0]
     i = 1
+    if args.check_chars is None:
+        backPos = None
+    elif args.check_chars == 0:
+        removedLines.put((NumOfLines, comparison))
+        putToDuplicateQueue(NumOfLines, comparison)
+        return
+    else:
+        backPos = args.check_chars
+
     if args.igonore_case:
         for s_line in range(1, NumOfLines):
-            if re.search(lines[s_line], comparison, re.IGNORECASE) is None:
+            if re.search(lines[s_line][0:backPos], comparison[0:backPos], re.IGNORECASE) is None:
                 removedLines.put((i, comparison))
                 putToDuplicateQueue(i, comparison)
                 comparison = lines[s_line]
@@ -67,7 +76,7 @@ def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
     else:
         for s_line in range(1, NumOfLines):
             # 行-１とその一行前の行を比較
-            if lines[s_line] != comparison:
+            if lines[s_line][0:backPos] != comparison[0:backPos]:
                 removedLines.put((i, comparison))
                 putToDuplicateQueue(i, comparison)
                 comparison = lines[s_line]
@@ -132,7 +141,7 @@ else:
     while not removedLines.empty():
         tmpQueue = None
         if args.unique and args.repeated:
-            print()
+            pass
         elif args.unique:
             tmpQueue = nonDuplicateLines
         elif args.repeated:
