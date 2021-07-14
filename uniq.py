@@ -119,12 +119,12 @@ if args.fileName.name != '<stdin>':
             if args.output.name != '<stdout>':
                 with open(args.output.name, args.output.mode) as wFile:
                     while not tmpQueue.empty():
+                        tmp = tmpQueue.get()
                         if args.count:
                             wFile.write(
-                                str(tmpQueue.get()[0]) + " " + tmpQueue.get()[1] + '\n')
+                                str(tmp[0]) + " " + tmp[1] + '\n')
                         else:
-                            wFile.write(tmpQueue.get()[1] + '\n')
-                wFile.close()
+                            wFile.write(tmp[1] + '\n')
             else:
                 while not tmpQueue.empty():
                     tmp = tmpQueue.get()
@@ -133,7 +133,6 @@ if args.fileName.name != '<stdin>':
                     else:
                         print(tmp[1])
 
-        file.close()
     except FileNotFoundError:
         sys.exit("No such file or directory:" + file)
 
