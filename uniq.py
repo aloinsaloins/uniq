@@ -64,48 +64,30 @@ def count(file, args, removedLines, duplicateLines, nonDuplicateLines) -> bool:
         backPos = args.check_chars
 
     if args.skip_chars is None:
-        forthPos = None
+        forthPos = 0
     else:
         forthPos = args.skip_chars
 
     if args.igonore_case:
-        for s_line in range(1, NumOfLines):
-            if re.search(lines[s_line][forthPos:backPos], comparison[forthPos:backPos], re.IGNORECASE) is None:
-                removedLines.put((i, comparison))
-                putToDuplicateQueue(i, comparison)
-                comparison = lines[s_line]
-                i = 1
-            else:
-                i += 1
-            if s_line == NumOfLines-1:
-                removedLines.put((i, comparison))
-                putToDuplicateQueue(i, comparison)
+        flag = re.IGNORECASE
     else:
-        for s_line in range(1, NumOfLines):
-            if forthPos is None:
-                # 行-１とその一行前の行を比較
-                if lines[s_line][forthPos:backPos] != comparison[forthPos:backPos]:
-                    removedLines.put((i, comparison))
-                    putToDuplicateQueue(i, comparison)
-                    comparison = lines[s_line]
-                    i = 1
-                else:
-                    i += 1
-                if s_line == NumOfLines-1:
-                    removedLines.put((i, lines[s_line]))
-                    putToDuplicateQueue(i, comparison)
-            else:
-                if forthPos >= len(lines[s_line]):
-                    i += 1
-                    continue
-                else:
-                    removedLines.put((i, comparison))
-                    putToDuplicateQueue(i, comparison)
-                    comparison = lines[s_line]
-                    i = 1
-                if s_line == NumOfLines-1:
-                    removedLines.put((i, lines[s_line]))
-                    putToDuplicateQueue(i, comparison)
+        flag = 0
+
+    for s_line in range(1, NumOfLines):
+        if re.search(lines[s_line][forthPos:backPos], comparison[forthPos:backPos], flag) is None:
+            removedLines.put((i, comparison))
+            putToDuplicateQueue(i, comparison)
+            comparison = lines[s_line]
+            i = 1
+        elif forthPos >= len(lines[s_line]):
+            i += 1
+            continue
+        elif forthPos <= len(lines[s_line]):
+            i += 1
+
+        if s_line == NumOfLines-1:
+            removedLines.put((i, lines[s_line]))
+            putToDuplicateQueue(i, comparison)
 
 
 try:
@@ -137,12 +119,12 @@ if args.fileName.name != '<stdin>':
             if args.output.name != '<stdout>':
                 with open(args.output.name, args.output.mode) as wFile:
                     while not tmpQueue.empty():
+                        tmp = tmpQueue.get()
                         if args.count:
                             wFile.write(
-                                str(tmpQueue.get()[0]) + " " + tmpQueue.get()[1] + '\n')
+                                str(tmp[0]) + " " + tmp[1] + '\n')
                         else:
-                            wFile.write(tmpQueue.get()[1] + '\n')
-                wFile.close()
+                            wFile.write(tmp[1] + '\n')
             else:
                 while not tmpQueue.empty():
                     tmp = tmpQueue.get()
@@ -151,7 +133,6 @@ if args.fileName.name != '<stdin>':
                     else:
                         print(tmp[1])
 
-        file.close()
     except FileNotFoundError:
         sys.exit("No such file or directory:" + file)
 
